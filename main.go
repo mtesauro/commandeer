@@ -1,126 +1,68 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
+	"os"
 	"time"
-	"github.com/mtesauro/commandeer/pkg/commandeer"
+
+	c "github.com/mtesauro/commandeer/pkg"
 )
-
-func interfaceFun(c Command) {
-	fmt.Println("In interfaceFun")
-	fmt.Println(c.PrintShell())
-}
-
-// osCmds - holds a group of commands to be executed
-type osCmds struct {
-	id     string   // Holds an optional description/label for the group of commands
-	cmds   []string // Holds the OS commands
-	errmsg []string // Holds the error message to log if the matching OS command fails
-	hard   []bool   // Flag to know if an error on the matching command should be a hard/breaking error
-}
-
-type cmdList struct {
-	list []singleCmd
-}
-
-type singleCmd struct {
-	cmd    string
-	errmsg string
-	hard   bool
-}
-
-func newCmds(d string) *osCmds {
-	var o osCmds
-	o.id = d
-	return &o
-}
-
-func addCmd(o *osCmds, cmd string, lerr string, hard bool) {
-	// Append command to existing list
-	o.cmds = append(o.cmds, cmd)
-	o.errmsg = append(o.cmds, lerr)
-	o.hard = append(o.hard, hard)
-}
-
-// TODO Pull out OS figuring out into it's own package from godojo
-// add the methods to discovery.go
 
 func main() {
 	fmt.Println("Comanndeer!")
 
-	// Setup a command
-	var cmd Command
-	// TODO Once a library, make this cmd.Create()
-	cmd = Create()
-	interfaceFun(cmd)
+	// Create a command pkg
+	testPkg := c.NewPkg("POC")
 
-	// Add some commands to the osCmds struct
-	fmt.Println("Setting up command data")
-	rando := newCmds("Random Test")
-	addCmd(rando, "ls", "ls failed", false)
-	addCmd(rando, "uptime", "uptime failed", false)
-	addCmd(rando, "pstree", "pstree failed", false)
+	// Set the location to run the commands - in the local terminal
+	// Default is LocalTerm so the command below isn't required
+	testPkg.SetLocation(c.LocalTerm{})
 
-	// Create a command package
-	var testPkg cmdPkg
-	testPkg.ID = "Ubuntu:21.04"
-	testPkg.Distro = "Ubuntu"
-	testPkg.Release = "21.04"
-	testPkg.OS = "Linux"
-	testPkg.Label = "POC"
-	getCmdPackage(&testPkg)
+	// Set some targets
+	testPkg.AddTarget("Ubuntu:21.04", "Ubuntu", "21.04", "Linux", "bash")
+	testPkg.AddTarget("Ubuntu:20.04", "Ubuntu", "20.04", "Linux", "bash")
+	testPkg.AddTarget("CentOS:7", "CentOS", "7", "Linux", "bash")
+	testPkg.AddTarget("RHEL:8", "RHEL", "8", "Linux", "bash")
 
-	fmt.Println("Test package looks like:")
-	fmt.Printf("%+v\n\n", testPkg)
-	for k, v := range(*testPkg.PkgCmds) {
-		fmt.Printf("Command #%v is %v\n", k, v)
-	}
+	// Add a single command
+	testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
 
-	//listCmd := cmdList {
-	one := []singleCmd{
-		{
-			// List the files
-			"ls",
-			"ls failed",
-			false,
+	// Load multiple commands
+	cmdList := []c.SingleCmd{
+		{ // List the files
+			Cmd:     "free -m",
+			Errmsg:  "free failed",
+			Hard:    false,
+			Timeout: (3 * time.Second),
 		},
-		{
-			// Check uptime
-			"uptime",
-			"uptime failed",
-			false,
+		{ // Check uptime
+			Cmd:     "uptime",
+			Errmsg:  "uptime failed",
+			Hard:    false,
+			Timeout: 0,
 		},
-		{
-			// Check uptime
-			"pstree",
-			"pstree failed",
-			false,
+		{ // Check uptime
+			Cmd:     "pstree | head",
+			Errmsg:  "pstree failed",
+			Hard:    false,
+			Timeout: 0,
 		},
 	}
-	// TODO create a load commands method to take ^ and create a filled in osCmds struct - return *osCmds and an error
-
-	fmt.Printf("Blah: %v\n\n", one)
-
-	// Run the commands
-	fmt.Println("Running command data")
-	// Run without a timeout
-	ctx := context.Background()
-	cmd.TryCmds(ctx, rando)
-
-	// Setup a context for long running command cancellation
-	// Below is a silly example of a 2 minute timout
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-
-	// Test the change shell method
-	fmt.Println("Testing setting the shell")
-	cmd.SetShell("sh")
-	out, err := cmd.Exec(ctx, "ls")
+	err := testPkg.LoadCmds(cmdList, "Ubuntu:21.04")
 	if err != nil {
-		log.Fatalf("Error exec'ing command was:\n\t%v\n", err)
+		fmt.Println("Unable to load commands to the target")
+		fmt.Printf("Error was:\n%v\n", err)
+		os.Exit(1)
 	}
-	fmt.Println(string(out))
+
+	// Exec the commands
+	out, err := testPkg.ExecPkgCombined("Ubuntu:21.04")
+	if err != nil {
+		fmt.Println("An error has occured:")
+		fmt.Printf("\t%v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Output:\n%s\n", out)
 
 }
