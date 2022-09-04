@@ -55,6 +55,18 @@ func (cp *CmdPkg) AddTarget(id string, dist string, rel string, os string, sh st
 
 // Add a single command to a command package target
 func (cp *CmdPkg) AddCmd(c string, e string, h bool, d time.Duration, t string) error {
+	// Sanity checks
+	if len(c) == 0 {
+		return errors.New("Command was empty")
+	}
+	if len(c) == 0 {
+		return errors.New("Error message was empty")
+	}
+	if d < 0 {
+		return errors.New("Timeout cannot be negative and must be zero or greater")
+	}
+
+
 	// Check that the target exists
 	tg, err := FindTarget(cp, t)
 	if err != nil {
@@ -101,13 +113,23 @@ func (cp *CmdPkg) ExecPkgCombined(t string) ([]byte, error) {
 		return nil, err
 	}
 
+	// Sanity check length of PkgCmds to ensure there's at least 1
+	if len(tg.PkgCmds) == 0 {
+		return nil, errors.New("Cannot Exec a Package with no commands added, please add commands before Exec'ing")
+	}
+
 	// Setup to run multiple commands
 	var fullOut []byte
 	for k := range tg.PkgCmds {
 		// Set a default contenxt
 		ctx := context.Background()
 
-		// Does thei command have a timeout
+		// Sanity check duration - it should be greater than or equal to zero
+		if tg.PkgCmds[k].Timeout < 0 {
+			return nil, errors.New("Timeout cannot be negative and must be zero or greater")
+		}
+
+		// Since duration is >= 0 and not zero, create a new context.WithTimeout for that duration
 		if tg.PkgCmds[k].Timeout != 0 {
 			// Set a timeout with context
 			new, cancel := context.WithTimeout(context.Background(), tg.PkgCmds[k].Timeout)
@@ -124,7 +146,7 @@ func (cp *CmdPkg) ExecPkgCombined(t string) ([]byte, error) {
 
 		// Log command if configured
 		if cp.EnableCmdLog {
-			cp.LogCmd(tg.PkgCmds[k].Cmd+"\n"+string(out))
+			cp.LogCmd(tg.PkgCmds[k].Cmd + "\n" + string(out))
 		}
 
 		// Gather output to return
@@ -143,6 +165,11 @@ func (cp *CmdPkg) ExecPkgError(t string) error {
 	tg, err := FindTarget(cp, t)
 	if err != nil {
 		return err
+	}
+
+	// Sanity check length of PkgCmds to ensure there's at least 1
+	if len(tg.PkgCmds) == 0 {
+		return errors.New("Cannot Exec a Package with no commands added, please add commands before Exec'ing")
 	}
 
 	// Setup to run multiple commands
@@ -184,6 +211,11 @@ func (cp *CmdPkg) ExecPkgOnly(t string) error {
 		return err
 	}
 
+	// Sanity check length of PkgCmds to ensure there's at least 1
+	if len(tg.PkgCmds) == 0 {
+		return errors.New("Cannot Exec a Package with no commands added, please add commands before Exec'ing")
+	}
+
 	// Setup to run multiple commands
 	for k := range tg.PkgCmds {
 		// Set a default contenxt
@@ -221,6 +253,11 @@ func (cp *CmdPkg) ExecPkgStdout(t string) ([]byte, error) {
 		return nil, err
 	}
 
+	// Sanity check length of PkgCmds to ensure there's at least 1
+	if len(tg.PkgCmds) == 0 {
+		return nil, errors.New("Cannot Exec a Package with no commands added, please add commands before Exec'ing")
+	}
+
 	// Setup to run multiple commands
 	var fullOut []byte
 	for k := range tg.PkgCmds {
@@ -244,7 +281,7 @@ func (cp *CmdPkg) ExecPkgStdout(t string) ([]byte, error) {
 
 		// Log command if configured
 		if cp.EnableCmdLog {
-			cp.LogCmd(tg.PkgCmds[k].Cmd+"\n"+string(out))
+			cp.LogCmd(tg.PkgCmds[k].Cmd + "\n" + string(out))
 		}
 
 		// Gather the output to return
@@ -264,6 +301,11 @@ func (cp *CmdPkg) ExecPkgStderr(t string) ([]byte, error) {
 	tg, err := FindTarget(cp, t)
 	if err != nil {
 		return nil, err
+	}
+
+	// Sanity check length of PkgCmds to ensure there's at least 1
+	if len(tg.PkgCmds) == 0 {
+		return nil, errors.New("Cannot Exec a Package with no commands added, please add commands before Exec'ing")
 	}
 
 	// Setup to run multiple commands
@@ -289,7 +331,7 @@ func (cp *CmdPkg) ExecPkgStderr(t string) ([]byte, error) {
 
 		// Log command if configured
 		if cp.EnableCmdLog {
-			cp.LogCmd(tg.PkgCmds[k].Cmd+"\n"+string(out))
+			cp.LogCmd(tg.PkgCmds[k].Cmd + "\n" + string(out))
 		}
 
 		// Gather the output to return
@@ -392,7 +434,7 @@ func NewPkg(l string) *CmdPkg {
 	return &CmdPkg{
 		Label:        l,
 		Targets:      []Target{},
-		Location:     LocalTerm{},
+		Location:     &LocalTerm{},
 		Log:          lg,
 		Redact:       true,
 		StrRedact:    str,
