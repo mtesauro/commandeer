@@ -29,8 +29,6 @@ func (m *MockTerm) ExecError(ctx context.Context, cmd string, shell string) erro
 func (m *MockTerm) ExecOnly(ctx context.Context, cmd string, shell string) {
 	// Store the last command executed
 	m.LastCommand = cmd
-
-	return
 }
 
 func (m *MockTerm) ExecStdout(cxt context.Context, cmd string, shell string) ([]byte, error) {

@@ -66,7 +66,6 @@ func (cp *CmdPkg) AddCmd(c string, e string, h bool, d time.Duration, t string) 
 		return errors.New("Timeout cannot be negative and must be zero or greater")
 	}
 
-
 	// Check that the target exists
 	tg, err := FindTarget(cp, t)
 	if err != nil {
@@ -82,7 +81,7 @@ func (cp *CmdPkg) AddCmd(c string, e string, h bool, d time.Duration, t string) 
 	}
 	tg.PkgCmds = append(tg.PkgCmds, cmd)
 
-	return errors.New(fmt.Sprintf("Cannot add command to non-existent target %s", t))
+	return fmt.Errorf("Cannot add command to non-existent target %s", t)
 }
 
 // Add a slice of SingleCmd to a command package target
@@ -400,9 +399,7 @@ func (cp *CmdPkg) Redactatron(l string) string {
 		clean := l
 		r := "[~REDACTED~]"
 		for i := range cp.StrRedact {
-			if strings.Contains(clean, cp.StrRedact[i]) {
-				clean = strings.Replace(clean, cp.StrRedact[i], r, -1)
-			}
+			clean = strings.Replace(clean, cp.StrRedact[i], r, -1)
 		}
 		return clean
 	}
@@ -453,7 +450,7 @@ func FindTarget(cp *CmdPkg, t string) (*Target, error) {
 			return &cp.Targets[k], nil
 		}
 	}
-	return nil, errors.New(fmt.Sprintf("Command Package does not support target %s", t))
+	return nil, fmt.Errorf("Command Package does not support target %s", t)
 }
 
 // LogToFile takes a path and a file name and attempts to create the path and file name

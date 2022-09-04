@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	c "github.com/mtesauro/commandeer/pkg"
+	c "github.com/mtesauro/commandeer"
 )
 
 func TestPoorlyLocalCmdLs(t *testing.T) {
@@ -14,7 +14,10 @@ func TestPoorlyLocalCmdLs(t *testing.T) {
 	testPkg.AddTarget("Ubuntu:21.04", "Ubuntu", "21.04", "Linux", "bash")
 
 	// Add the ls command
-	testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	err := testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Execute the command package
 	out, err := testPkg.ExecPkgCombined("Ubuntu:21.04")
@@ -45,7 +48,10 @@ func TestExecPkgCombinedSuccess(t *testing.T) {
 	testPkg.AddTarget("Ubuntu:21.04", "Ubuntu", "21.04", "Linux", "bash")
 
 	// Add at least 1 command even though Terminal is mocked
-	testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	err := testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Execute the command package
 	out, err := testPkg.ExecPkgCombined("Ubuntu:21.04")
@@ -78,17 +84,20 @@ func TestExecPkgCombinedFailed(t *testing.T) {
 	testPkg.AddTarget("Ubuntu:21.04", "Ubuntu", "21.04", "Linux", "bash")
 
 	// Add at least 1 command even though Terminal is mocked
-	testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	err := testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Execute the command package
-	out, err := testPkg.ExecPkgCombined("Ubuntu:21.04")
+	_, err = testPkg.ExecPkgCombined("Ubuntu:21.04")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// TEST: Force output from ExecPkgCombined to be different than what was mocked above
 	// Force output to be different than mocked output
-	out = []byte("DIFFERENT")
+	out := []byte("DIFFERENT")
 
 	// Output should NOT match the output we mocked for this test of failure
 	if strings.Contains(string(out), string(m.Out)) {
@@ -114,10 +123,13 @@ func TestExecPkgCombinedErrored(t *testing.T) {
 	testPkg.AddTarget("Ubuntu:21.04", "Ubuntu", "21.04", "Linux", "bash")
 
 	// Add at least 1 command even though Terminal is mocked
-	testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	err := testPkg.AddCmd("ls ./", "ls command failed", false, 0, "Ubuntu:21.04")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Execute the command package
-	_, err := testPkg.ExecPkgCombined("Ubuntu:21.04")
+	_, err = testPkg.ExecPkgCombined("Ubuntu:21.04")
 
 	// TEST: Mock forces an error to be returned from ExecPkgCombined so error should never be nil
 	if err == nil {
@@ -144,10 +156,13 @@ func TestExecPkgCombinedBadTimeout(t *testing.T) {
 	testPkg.AddTarget("Ubuntu:21.04", "Ubuntu", "21.04", "Linux", "bash")
 
 	// Add at least 1 command even though Terminal is mocked
-	testPkg.AddCmd("ls ./", "ls command failed", false, -7, "Ubuntu:21.04")
+	err := testPkg.AddCmd("ls ./", "ls command failed", false, -7, "Ubuntu:21.04")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Execute the command package
-	_, err := testPkg.ExecPkgCombined("Ubuntu:21.04")
+	_, err = testPkg.ExecPkgCombined("Ubuntu:21.04")
 
 	// TEST: Command added with negative duration so error should never be nil
 	if err == nil {
