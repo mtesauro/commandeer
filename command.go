@@ -69,7 +69,7 @@ func (cp *CmdPkg) AddCmd(c string, e string, h bool, d time.Duration, t string) 
 	// Check that the target exists
 	tg, err := FindTarget(cp, t)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot add command to non-existent target %s", t)
 	}
 
 	// Add the command
@@ -81,7 +81,7 @@ func (cp *CmdPkg) AddCmd(c string, e string, h bool, d time.Duration, t string) 
 	}
 	tg.PkgCmds = append(tg.PkgCmds, cmd)
 
-	return fmt.Errorf("Cannot add command to non-existent target %s", t)
+	return nil
 }
 
 // Add a single command to a command package target
