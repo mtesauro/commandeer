@@ -6,10 +6,12 @@ import (
 
 // Holds a single command including the max exec time aka Timeout
 type SingleCmd struct {
-	Cmd     string        // Holds the command to be executed
-	Errmsg  string        // Holds a custom error message to return on error
-	Hard    bool          // Exit running if an error occurs during execution e.g. os.Exit(1)
-	Timeout time.Duration // Holds the max time a command can run before being cancelled
+	Cmd        string        // Holds the command to be executed
+	Errmsg     string        // Holds a custom error message to return on error
+	Hard       bool          // Exit running if an error occurs during execution e.g. os.Exit(1)
+	Timeout    time.Duration // Holds the max time a command can run before being cancelled
+	BeforeText string        // Holds the optional text to print before starting the command
+	AfterText  string        // Holds the optional text to print after starting the command
 }
 
 //////////////////////////////////

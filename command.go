@@ -35,7 +35,7 @@ type CmdCollection struct {
 	Collection []CmdPkg // Allows commands for multiple targets to be stored together
 }
 
-// Set the Location - either local aka on the host or remove aka over SSH
+// Set the Location - either local aka on the host or remote aka over SSH
 func (cp *CmdPkg) SetLocation(cl Terminal) {
 	cp.Location = cl
 }
@@ -78,6 +78,39 @@ func (cp *CmdPkg) AddCmd(c string, e string, h bool, d time.Duration, t string) 
 		Errmsg:  e,
 		Hard:    h,
 		Timeout: d,
+	}
+	tg.PkgCmds = append(tg.PkgCmds, cmd)
+
+	return fmt.Errorf("Cannot add command to non-existent target %s", t)
+}
+
+// Add a single command to a command package target
+func (cp *CmdPkg) AddCmdWText(c string, e string, h bool, d time.Duration, t string, b string, a string) error {
+	// Sanity checks
+	if len(c) == 0 {
+		return errors.New("Command was empty")
+	}
+	if len(c) == 0 {
+		return errors.New("Error message was empty")
+	}
+	if d < 0 {
+		return errors.New("Timeout cannot be negative and must be zero or greater")
+	}
+
+	// Check that the target exists
+	tg, err := FindTarget(cp, t)
+	if err != nil {
+		return err
+	}
+
+	// Add the command
+	cmd := SingleCmd{
+		Cmd:        c,
+		Errmsg:     e,
+		Hard:       h,
+		Timeout:    d,
+		BeforeText: b,
+		AfterText:  a,
 	}
 	tg.PkgCmds = append(tg.PkgCmds, cmd)
 
@@ -137,6 +170,9 @@ func (cp *CmdPkg) ExecPkgCombined(t string) ([]byte, error) {
 
 		}
 
+		// Optionally print before text
+		printIfProvided(tg.PkgCmds[k].BeforeText)
+
 		// Execute the command
 		out, err := cp.Location.ExecCombined(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
 		if err != nil {
@@ -150,6 +186,9 @@ func (cp *CmdPkg) ExecPkgCombined(t string) ([]byte, error) {
 
 		// Gather output to return
 		fullOut = append(fullOut, out...)
+
+		// Optionally print after text
+		printIfProvided(tg.PkgCmds[k].AfterText)
 	}
 
 	return fullOut, nil
@@ -176,7 +215,7 @@ func (cp *CmdPkg) ExecPkgError(t string) error {
 		// Set a default contenxt
 		ctx := context.Background()
 
-		// Does thei command have a timeout
+		// Does the command have a timeout
 		if tg.PkgCmds[k].Timeout != 0 {
 			// Set a timeout with context
 			new, cancel := context.WithTimeout(context.Background(), tg.PkgCmds[k].Timeout)
@@ -190,11 +229,17 @@ func (cp *CmdPkg) ExecPkgError(t string) error {
 			cp.LogCmd(tg.PkgCmds[k].Cmd)
 		}
 
+		// Optionally print before text
+		printIfProvided(tg.PkgCmds[k].BeforeText)
+
 		// Execute the command
 		err := cp.Location.ExecError(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
 		if err != nil {
 			return err
 		}
+
+		// Optionally print after text
+		printIfProvided(tg.PkgCmds[k].AfterText)
 	}
 
 	return nil
@@ -234,8 +279,14 @@ func (cp *CmdPkg) ExecPkgOnly(t string) error {
 			cp.LogCmd(tg.PkgCmds[k].Cmd)
 		}
 
+		// Optionally print before text
+		printIfProvided(tg.PkgCmds[k].BeforeText)
+
 		// Execute the command
 		cp.Location.ExecOnly(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
+
+		// Optionally print after text
+		printIfProvided(tg.PkgCmds[k].AfterText)
 	}
 
 	return nil
@@ -272,6 +323,9 @@ func (cp *CmdPkg) ExecPkgStdout(t string) ([]byte, error) {
 
 		}
 
+		// Optionally print before text
+		printIfProvided(tg.PkgCmds[k].BeforeText)
+
 		// Execute the command
 		out, err := cp.Location.ExecStdout(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
 		if err != nil {
@@ -285,6 +339,9 @@ func (cp *CmdPkg) ExecPkgStdout(t string) ([]byte, error) {
 
 		// Gather the output to return
 		fullOut = append(fullOut, out...)
+
+		// Optionally print after text
+		printIfProvided(tg.PkgCmds[k].AfterText)
 	}
 
 	return fullOut, nil
@@ -322,6 +379,9 @@ func (cp *CmdPkg) ExecPkgStderr(t string) ([]byte, error) {
 
 		}
 
+		// Optionally print after text
+		printIfProvided(tg.PkgCmds[k].BeforeText)
+
 		// Execute the command
 		out, err := cp.Location.ExecStderr(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
 		if err != nil {
@@ -335,6 +395,9 @@ func (cp *CmdPkg) ExecPkgStderr(t string) ([]byte, error) {
 
 		// Gather the output to return
 		fullOut = append(fullOut, out...)
+
+		// Optionally print after text
+		printIfProvided(tg.PkgCmds[k].AfterText)
 	}
 
 	return fullOut, nil
@@ -478,4 +541,12 @@ func LogToFile(fpath string, fname string) (io.Writer, error) {
 	}
 
 	return logFile, nil
+}
+
+// printIfProvided takes a string and prints the string to stdout
+// if the string is not empty aka length > 0
+func printIfProvided(s string) {
+	if len(s) > 0 {
+		fmt.Println(s)
+	}
 }
