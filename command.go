@@ -176,7 +176,7 @@ func (cp *CmdPkg) ExecPkgCombined(t string) ([]byte, error) {
 		// Execute the command
 		out, err := cp.Location.ExecCombined(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s occurred and returned %v", tg.PkgCmds[k].Errmsg, err)
 		}
 
 		// Log command if configured
