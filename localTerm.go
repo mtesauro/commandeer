@@ -51,12 +51,12 @@ func (l *LocalTerm) ExecStdout(ctx context.Context, cmd string, shell string) ([
 
 	stdout, err := io.ReadAll(out)
 	if err != nil {
-		return nil, err
+		return stdout, err
 	}
 
 	err = wrappedCmd.Wait()
 	if err != nil {
-		return nil, err
+		return stdout, err
 	}
 
 	return stdout, err
@@ -76,15 +76,15 @@ func (l *LocalTerm) ExecStderr(ctx context.Context, cmd string, shell string) ([
 		return nil, err
 	}
 
-	stdout, err := io.ReadAll(out)
+	stderr, err := io.ReadAll(out)
 	if err != nil {
-		return nil, err
+		return stderr, err
 	}
 
 	err = wrappedCmd.Wait()
 	if err != nil {
-		return nil, err
+		return stderr, err
 	}
 
-	return stdout, err
+	return stderr, err
 }

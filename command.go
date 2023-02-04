@@ -114,7 +114,7 @@ func (cp *CmdPkg) AddCmdWText(c string, e string, h bool, d time.Duration, t str
 	}
 	tg.PkgCmds = append(tg.PkgCmds, cmd)
 
-	return fmt.Errorf("Cannot add command to non-existent target %s", t)
+	return nil
 }
 
 // Add a slice of SingleCmd to a command package target
@@ -175,8 +175,13 @@ func (cp *CmdPkg) ExecPkgCombined(t string) ([]byte, error) {
 
 		// Execute the command
 		out, err := cp.Location.ExecCombined(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
+		// Capture available command output
+		tg.PkgCmds[k].StdBoth = string(out)
+		tg.PkgCmds[k].Stderr = ""
+		tg.PkgCmds[k].Stdout = ""
 		if err != nil {
-			return nil, fmt.Errorf("%s occurred and returned %v", tg.PkgCmds[k].Errmsg, err)
+			// Return combined stdout & stderr as an array of bytes
+			return out, fmt.Errorf("%s occurred and returned %v", tg.PkgCmds[k].Errmsg, err)
 		}
 
 		// Log command if configured
@@ -328,6 +333,10 @@ func (cp *CmdPkg) ExecPkgStdout(t string) ([]byte, error) {
 
 		// Execute the command
 		out, err := cp.Location.ExecStdout(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
+		// Capture available command output
+		tg.PkgCmds[k].StdBoth = string(out)
+		tg.PkgCmds[k].Stderr = ""
+		tg.PkgCmds[k].Stdout = string(out)
 		if err != nil {
 			return nil, err
 		}
@@ -351,7 +360,6 @@ func (cp *CmdPkg) ExecPkgStdout(t string) ([]byte, error) {
 // representing only stdout for the commands run. An error is returned if the
 // target isn't found in the command package or an error occurs during running
 // the commands.
-// ExecStderr(ctx context.Context, cmd string, shell string) ([]byte, error)
 func (cp *CmdPkg) ExecPkgStderr(t string) ([]byte, error) {
 	// Check that the target exists
 	tg, err := FindTarget(cp, t)
@@ -384,6 +392,10 @@ func (cp *CmdPkg) ExecPkgStderr(t string) ([]byte, error) {
 
 		// Execute the command
 		out, err := cp.Location.ExecStderr(ctx, tg.PkgCmds[k].Cmd, tg.Shell)
+		// Capture available command output
+		tg.PkgCmds[k].StdBoth = string(out)
+		tg.PkgCmds[k].Stderr = string(out)
+		tg.PkgCmds[k].Stdout = ""
 		if err != nil {
 			return nil, err
 		}

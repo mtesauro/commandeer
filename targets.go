@@ -12,6 +12,9 @@ type SingleCmd struct {
 	Timeout    time.Duration // Holds the max time a command can run before being cancelled
 	BeforeText string        // Holds the optional text to print before starting the command
 	AfterText  string        // Holds the optional text to print after starting the command
+	Stdout     string        // Holds stdout from running the command
+	Stderr     string        // Holds stderr from running the command
+	StdBoth    string        // Holds both stdout and stderr from running the command
 }
 
 //////////////////////////////////
